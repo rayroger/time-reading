@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
@@ -21,7 +22,6 @@ import androidx.camera.video.Recorder
 import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import com.timereading.app.databinding.ActivityMainBinding
@@ -39,6 +39,23 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var cameraExecutor: ExecutorService
 
+    private val activityResultLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+            var permissionGranted = true
+            permissions.entries.forEach {
+                if (it.key in REQUIRED_PERMISSIONS && !it.value)
+                    permissionGranted = false
+            }
+            if (!permissionGranted) {
+                Toast.makeText(this,
+                    "Permissions not granted by the user.",
+                    Toast.LENGTH_SHORT).show()
+                finish()
+            } else {
+                startCamera()
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewBinding = ActivityMainBinding.inflate(layoutInflater)
@@ -48,8 +65,7 @@ class MainActivity : AppCompatActivity() {
         if (allPermissionsGranted()) {
             startCamera()
         } else {
-            ActivityCompat.requestPermissions(
-                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
+            activityResultLauncher.launch(REQUIRED_PERMISSIONS)
         }
 
         // Set up the listeners for take photo and video capture buttons
@@ -219,26 +235,9 @@ class MainActivity : AppCompatActivity() {
         cameraExecutor.shutdown()
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<String>, grantResults:
-        IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_CODE_PERMISSIONS) {
-            if (allPermissionsGranted()) {
-                startCamera()
-            } else {
-                Toast.makeText(this,
-                    "Permissions not granted by the user.",
-                    Toast.LENGTH_SHORT).show()
-                finish()
-            }
-        }
-    }
-
     companion object {
         private const val TAG = "TimeReading"
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
-        private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS =
             mutableListOf (
                 Manifest.permission.CAMERA,
