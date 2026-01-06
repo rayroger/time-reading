@@ -41,10 +41,8 @@ class MainActivity : AppCompatActivity() {
 
     private val activityResultLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-            var permissionGranted = true
-            permissions.entries.forEach {
-                if (it.key in REQUIRED_PERMISSIONS && !it.value)
-                    permissionGranted = false
+            val permissionGranted = !permissions.entries.any {
+                it.key in REQUIRED_PERMISSIONS && !it.value
             }
             if (!permissionGranted) {
                 Toast.makeText(this,
@@ -239,7 +237,7 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "TimeReading"
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
         private val REQUIRED_PERMISSIONS =
-            mutableListOf (
+            mutableListOf(
                 Manifest.permission.CAMERA,
                 Manifest.permission.RECORD_AUDIO
             ).apply {
