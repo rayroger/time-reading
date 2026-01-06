@@ -23,7 +23,6 @@ import androidx.camera.video.Recording
 import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
 import androidx.core.content.ContextCompat
-import androidx.core.content.PermissionChecker
 import com.timereading.app.databinding.ActivityMainBinding
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -41,8 +40,8 @@ class MainActivity : AppCompatActivity() {
 
     private val activityResultLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-            val permissionGranted = !permissions.entries.any {
-                it.key in REQUIRED_PERMISSIONS && !it.value
+            val permissionGranted = permissions.entries.all {
+                it.key !in REQUIRED_PERMISSIONS || it.value
             }
             if (!permissionGranted) {
                 Toast.makeText(this,
