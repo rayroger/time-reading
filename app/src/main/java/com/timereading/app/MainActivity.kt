@@ -83,7 +83,7 @@ class MainActivity : AppCompatActivity() {
         val contentValues = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, name)
             put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-            if(Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
                 put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/TimeReading")
             }
         }
@@ -123,6 +123,7 @@ class MainActivity : AppCompatActivity() {
             // Stop the current recording session.
             curRecording.stop()
             recording = null
+            // The button will be re-enabled in the VideoRecordEvent.Finalize handler
             return
         }
 
@@ -144,9 +145,9 @@ class MainActivity : AppCompatActivity() {
         recording = videoCapture.output
             .prepareRecording(this, mediaStoreOutputOptions)
             .apply {
-                if (PermissionChecker.checkSelfPermission(this@MainActivity,
+                if (ContextCompat.checkSelfPermission(this@MainActivity,
                         Manifest.permission.RECORD_AUDIO) ==
-                    PermissionChecker.PERMISSION_GRANTED)
+                    PackageManager.PERMISSION_GRANTED)
                 {
                     withAudioEnabled()
                 }
@@ -216,7 +217,7 @@ class MainActivity : AppCompatActivity() {
                 cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, imageCapture, videoCapture)
 
-            } catch(exc: Exception) {
+            } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
             }
 
