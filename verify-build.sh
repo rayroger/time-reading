@@ -79,8 +79,24 @@ print_info() {
 
 get_file_size_mb() {
     local file="$1"
-    local size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null)
-    echo "scale=2; $size / 1048576" | bc 2>/dev/null || echo "N/A"
+    if [ ! -f "$file" ]; then
+        echo "N/A"
+        return
+    fi
+    
+    # Try to get file size in bytes using portable method
+    local size=$(wc -c < "$file" 2>/dev/null | tr -d ' ')
+    
+    if [ -n "$size" ] && [ "$size" -gt 0 ]; then
+        # Use shell arithmetic for division (result in MB with 2 decimal places)
+        # Convert to MB: bytes / 1048576
+        local mb=$((size / 1048576))
+        local remainder=$((size % 1048576))
+        local decimal=$((remainder * 100 / 1048576))
+        printf "%d.%02d" "$mb" "$decimal"
+    else
+        echo "N/A"
+    fi
 }
 
 test_passed() {
@@ -97,10 +113,12 @@ test_failed() {
 
 test_warning() {
     TESTS_WARNING=$((TESTS_WARNING + 1))
-    TESTS_TOTAL=$((TESTS_TOTAL + 1))
     print_warning "$1"
     if [ "$STRICT_MODE" = true ]; then
         TESTS_FAILED=$((TESTS_FAILED + 1))
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
+    else
+        TESTS_TOTAL=$((TESTS_TOTAL + 1))
     fi
 }
 
