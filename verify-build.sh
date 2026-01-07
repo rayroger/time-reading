@@ -77,6 +77,12 @@ print_info() {
     echo -e "${BLUE}ℹ $1${NC}"
 }
 
+get_file_size_mb() {
+    local file="$1"
+    local size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null)
+    echo "scale=2; $size / 1048576" | bc 2>/dev/null || echo "N/A"
+}
+
 test_passed() {
     TESTS_PASSED=$((TESTS_PASSED + 1))
     TESTS_TOTAL=$((TESTS_TOTAL + 1))
@@ -264,8 +270,7 @@ verify_debug_build() {
         test_passed "Debug APK exists"
         
         # Check file size
-        APK_SIZE=$(stat -f%z "$DEBUG_APK" 2>/dev/null || stat -c%s "$DEBUG_APK" 2>/dev/null)
-        APK_SIZE_MB=$(echo "scale=2; $APK_SIZE / 1048576" | bc 2>/dev/null || echo "N/A")
+        APK_SIZE_MB=$(get_file_size_mb "$DEBUG_APK")
         test_passed "Debug APK size: ${APK_SIZE_MB} MB"
         
         # Check if APK is valid (basic check)
@@ -341,8 +346,7 @@ verify_release_build() {
         test_passed "Release APK exists (signed)"
         
         # Check file size
-        APK_SIZE=$(stat -f%z "$RELEASE_APK" 2>/dev/null || stat -c%s "$RELEASE_APK" 2>/dev/null)
-        APK_SIZE_MB=$(echo "scale=2; $APK_SIZE / 1048576" | bc 2>/dev/null || echo "N/A")
+        APK_SIZE_MB=$(get_file_size_mb "$RELEASE_APK")
         test_passed "Release APK size: ${APK_SIZE_MB} MB"
         
         # Check if APK is valid
@@ -430,7 +434,7 @@ verify_lint_results() {
                 if [ "$WARNINGS" -eq 0 ]; then
                     test_passed "Lint warnings: 0"
                 else
-                    test_info "Lint warnings found: $WARNINGS"
+                    print_info "Lint warnings found: $WARNINGS"
                 fi
             fi
         else
@@ -481,9 +485,7 @@ verify_assets_resources() {
             
             # Check for ML models specifically mentioned in architecture
             if [ -f "app/src/main/assets/watch_detector.tflite" ]; then
-                MODEL_SIZE=$(stat -f%z "app/src/main/assets/watch_detector.tflite" 2>/dev/null || \
-                            stat -c%s "app/src/main/assets/watch_detector.tflite" 2>/dev/null)
-                MODEL_SIZE_MB=$(echo "scale=2; $MODEL_SIZE / 1048576" | bc 2>/dev/null || echo "N/A")
+                MODEL_SIZE_MB=$(get_file_size_mb "app/src/main/assets/watch_detector.tflite")
                 test_passed "TensorFlow Lite model found: ${MODEL_SIZE_MB} MB"
             else
                 print_info "TensorFlow Lite model not found (see MODEL_README.md for details)"
@@ -609,7 +611,7 @@ main() {
     print_header "Time Reading - Build Verification"
     
     # Parse command line arguments
-    while [[ $# -gt 0 ]]; do
+    while [[ "$#" -gt 0 ]]; do
         case "$1" in
             --debug)
                 VERIFY_DEBUG=true

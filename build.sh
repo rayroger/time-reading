@@ -263,7 +263,7 @@ EOF
 
 main() {
     # Show help if no arguments
-    if [ $# -eq 0 ]; then
+    if [ "$#" -eq 0 ]; then
         cmd_help
         exit 0
     fi
