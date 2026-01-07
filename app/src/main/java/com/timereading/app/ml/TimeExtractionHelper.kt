@@ -30,7 +30,8 @@ object TimeExtractionHelper {
         val dx = pointX - centerX
         val dy = centerY - pointY // Inverted Y-axis (screen coordinates)
         
-        // atan2 returns angle in radians with 3 o'clock as 0
+        // atan2(dx, dy) returns angle from 12 o'clock position (positive Y-axis)
+        // Returns 0 when pointing up, positive angles clockwise
         var angle = Math.toDegrees(atan2(dx.toDouble(), dy.toDouble())).toFloat()
         
         // Normalize to 0-360 range

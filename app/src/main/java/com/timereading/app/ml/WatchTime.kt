@@ -16,12 +16,15 @@ data class WatchTime(
 ) {
     /**
      * Returns a formatted time string in HH:mm:ss or HH:mm format.
+     * Hours are displayed in 12-hour format (12, 1-11).
      */
     fun toFormattedString(): String {
+        // Convert 0 to 12 for 12-hour format display
+        val displayHours = if (hours == 0) 12 else hours
         return if (seconds >= 0) {
-            String.format("%02d:%02d:%02d", hours, minutes, seconds)
+            String.format("%02d:%02d:%02d", displayHours, minutes, seconds)
         } else {
-            String.format("%02d:%02d", hours, minutes)
+            String.format("%02d:%02d", displayHours, minutes)
         }
     }
 
