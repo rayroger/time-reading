@@ -33,6 +33,11 @@ android {
     buildFeatures {
         viewBinding true
     }
+    
+    // Don't compress TFLite model files
+    aaptOptions {
+        noCompress "tflite"
+    }
 }
 
 dependencies {
@@ -50,6 +55,11 @@ dependencies {
     implementation "androidx.camera:camera-video:${camerax_version}"
     implementation "androidx.camera:camera-view:${camerax_version}"
     implementation "androidx.camera:camera-extensions:${camerax_version}"
+    
+    // TensorFlow Lite for ML inference
+    implementation 'org.tensorflow:tensorflow-lite:2.14.0'
+    implementation 'org.tensorflow:tensorflow-lite-gpu:2.14.0'
+    implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
     
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
