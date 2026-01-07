@@ -302,6 +302,8 @@ CameraProvider
 
 ### Technical Implementation Details
 
+**Note**: The following code examples are conceptual implementations to illustrate the ML integration approach. Helper methods like `loadModelFile()` and `imageProxyToBitmap()` would need to be implemented based on specific project requirements.
+
 #### Model Integration
 
 ```kotlin
@@ -315,7 +317,7 @@ class WatchDialAnalyzer(
     
     init {
         // Load TFLite model from assets
-        val model = FileUtil.loadMappedFile(context, "watch_detector.tflite")
+        val model = loadModelFile(context, "watch_detector.tflite")
         interpreter = Interpreter(model)
         
         // Initialize input/output tensors
@@ -327,7 +329,7 @@ class WatchDialAnalyzer(
     
     override fun analyze(imageProxy: ImageProxy) {
         // Convert ImageProxy to Bitmap
-        val bitmap = imageProxy.toBitmap()
+        val bitmap = imageProxyToBitmap(imageProxy)
         
         // Preprocess image
         inputImageBuffer.load(bitmap)
@@ -417,7 +419,7 @@ private fun extractTime(angles: HandAngles): WatchTime {
 #### Dataset Composition
 
 - **Real Watch Images**: 10,000+ labeled images
-  - Various watch styles (digital, analog, mixed)
+  - Various analog watch styles (classic, minimalist, ornate)
   - Different lighting conditions
   - Multiple angles and perspectives
   - Varied backgrounds
@@ -495,15 +497,16 @@ private fun createInterpreter(model: ByteBuffer): Interpreter {
     val options = Interpreter.Options().apply {
         setNumThreads(4)  // Use 4 CPU threads
         
-        // Try to use GPU delegate
-        if (isGpuSupported()) {
-            addDelegate(GpuDelegate())
+        // Try to use GPU delegate (requires GPU delegate dependency)
+        try {
+            val gpuDelegate = GpuDelegate()
+            addDelegate(gpuDelegate)
+        } catch (e: Exception) {
+            Log.w(TAG, "GPU acceleration not available")
         }
         
-        // Fallback to NNAPI
-        if (isNnapiSupported()) {
-            setUseNNAPI(true)
-        }
+        // Enable NNAPI if available
+        setUseNNAPI(true)
     }
     
     return Interpreter(model, options)
