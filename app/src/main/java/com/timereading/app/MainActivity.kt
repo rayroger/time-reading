@@ -7,10 +7,12 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
@@ -24,6 +26,8 @@ import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
 import androidx.core.content.ContextCompat
 import com.timereading.app.databinding.ActivityMainBinding
+import com.timereading.app.ml.WatchDialAnalyzer
+import com.timereading.app.ml.WatchTime
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.ExecutorService
@@ -35,8 +39,14 @@ class MainActivity : AppCompatActivity() {
     private var imageCapture: ImageCapture? = null
     private var videoCapture: VideoCapture<Recorder>? = null
     private var recording: Recording? = null
+    
+    // ML analysis components
+    private var imageAnalysis: ImageAnalysis? = null
+    private var watchDialAnalyzer: WatchDialAnalyzer? = null
+    private var isAnalysisEnabled = false
 
     private lateinit var cameraExecutor: ExecutorService
+    private lateinit var mlExecutor: ExecutorService
 
     private val activityResultLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
@@ -68,8 +78,53 @@ class MainActivity : AppCompatActivity() {
         // Set up the listeners for take photo and video capture buttons
         viewBinding.imageCaptureButton.setOnClickListener { takePhoto() }
         viewBinding.videoCaptureButton.setOnClickListener { captureVideo() }
+        viewBinding.analyzeButton.setOnClickListener { toggleAnalysis() }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
+        mlExecutor = Executors.newSingleThreadExecutor()
+    }
+    
+    /**
+     * Toggles the ML analysis on/off.
+     */
+    private fun toggleAnalysis() {
+        isAnalysisEnabled = !isAnalysisEnabled
+        
+        if (isAnalysisEnabled) {
+            viewBinding.analyzeButton.text = getString(R.string.analysis_enabled)
+            viewBinding.timeDisplay.text = getString(R.string.analyzing)
+            viewBinding.confidenceDisplay.visibility = View.GONE
+            // Restart camera with analysis enabled
+            startCamera()
+        } else {
+            viewBinding.analyzeButton.text = getString(R.string.analysis_disabled)
+            viewBinding.timeDisplay.text = getString(R.string.no_watch_detected)
+            viewBinding.confidenceDisplay.visibility = View.GONE
+            // Restart camera without analysis
+            watchDialAnalyzer?.close()
+            watchDialAnalyzer = null
+            startCamera()
+        }
+    }
+    
+    /**
+     * Handles time detection results from the ML analyzer.
+     * Called from the ML executor thread, so updates UI on main thread.
+     */
+    private fun onTimeDetected(watchTime: WatchTime?) {
+        runOnUiThread {
+            if (watchTime != null && watchTime.confidence > 0.5f) {
+                viewBinding.timeDisplay.text = watchTime.toFormattedString()
+                viewBinding.confidenceDisplay.text = getString(
+                    R.string.confidence_format,
+                    (watchTime.confidence * 100).toInt()
+                )
+                viewBinding.confidenceDisplay.visibility = View.VISIBLE
+            } else {
+                viewBinding.timeDisplay.text = getString(R.string.no_watch_detected)
+                viewBinding.confidenceDisplay.visibility = View.GONE
+            }
+        }
     }
 
     private fun takePhoto() {
@@ -204,6 +259,23 @@ class MainActivity : AppCompatActivity() {
                 .setQualitySelector(QualitySelector.from(Quality.HIGHEST))
                 .build()
             videoCapture = VideoCapture.withOutput(recorder)
+            
+            // ImageAnalysis for ML watch detection (only when enabled)
+            if (isAnalysisEnabled) {
+                watchDialAnalyzer = WatchDialAnalyzer(this) { watchTime ->
+                    onTimeDetected(watchTime)
+                }
+                
+                imageAnalysis = ImageAnalysis.Builder()
+                    .setTargetResolution(android.util.Size(640, 480))
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                    .also {
+                        it.setAnalyzer(mlExecutor, watchDialAnalyzer!!)
+                    }
+            } else {
+                imageAnalysis = null
+            }
 
             // Select back camera as a default
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -213,8 +285,17 @@ class MainActivity : AppCompatActivity() {
                 cameraProvider.unbindAll()
 
                 // Bind use cases to camera
-                cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageCapture, videoCapture)
+                // Note: CameraX may not support binding all 4 use cases simultaneously
+                // on all devices, so we prioritize based on analysis state
+                if (isAnalysisEnabled && imageAnalysis != null) {
+                    // When analyzing, bind preview, image capture, and analysis
+                    cameraProvider.bindToLifecycle(
+                        this, cameraSelector, preview, imageCapture, imageAnalysis)
+                } else {
+                    // When not analyzing, bind preview, image capture, and video
+                    cameraProvider.bindToLifecycle(
+                        this, cameraSelector, preview, imageCapture, videoCapture)
+                }
 
             } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
@@ -230,7 +311,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        watchDialAnalyzer?.close()
+        watchDialAnalyzer = null
         cameraExecutor.shutdown()
+        mlExecutor.shutdown()
     }
 
     companion object {

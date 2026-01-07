@@ -1,6 +1,14 @@
 <resources>
     <string name="app_name">Time Reading</string>
-    <string name="take_photo">Take Photo</string>
-    <string name="start_capture">Start Recording</string>
-    <string name="stop_capture">Stop Recording</string>
+    <string name="take_photo">Photo</string>
+    <string name="start_capture">Record</string>
+    <string name="stop_capture">Stop</string>
+    <string name="analyze_watch">Analyze</string>
+    <string name="detected_time">Detected Time</string>
+    <string name="no_watch_detected">Point camera at watch</string>
+    <string name="confidence_placeholder">Confidence: --</string>
+    <string name="confidence_format">Confidence: %d%%</string>
+    <string name="analyzing">Analyzing…</string>
+    <string name="analysis_enabled">Analysis ON</string>
+    <string name="analysis_disabled">Analyze</string>
 </resources>
