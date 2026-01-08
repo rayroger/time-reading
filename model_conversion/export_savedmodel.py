@@ -158,6 +158,17 @@ def create_unified_model(segmentation_path, keypoint_path, output_dir):
             """
             Unified inference that outputs hand angles directly.
             
+            NOTE: This is a PLACEHOLDER implementation. The actual post-processing
+            to extract angles from segmentation masks requires implementing:
+            1. KDE (Kernel Density Estimation) to separate hour/minute hands
+            2. Line fitting to extract hand orientations
+            3. Angle calculation relative to keypoint top position
+            
+            For production use, you need to either:
+            - Implement the full post-processing pipeline (see analog-watch-recognition)
+            - Use the models separately in Android and do post-processing in Kotlin
+            - Train an end-to-end model that directly outputs angles
+            
             Returns:
                 Tensor of shape [1, 4] containing:
                 [hourAngle, minuteAngle, secondAngle, confidence]
@@ -168,15 +179,16 @@ def create_unified_model(segmentation_path, keypoint_path, output_dir):
             # Get keypoints (center and top)
             kp_output = keypoint_model.signatures['serving_default'](input_image)
             
-            # TODO: Post-processing to extract angles from segmentation mask
-            # This would involve:
-            # 1. Extracting hand pixels from segmentation mask
-            # 2. Using KDE to separate hour and minute hands
-            # 3. Calculating angles relative to the top keypoint
-            # 4. Outputting angles and confidence
+            # TODO: Complete post-processing implementation
+            # The following would be needed for a production-ready unified model:
+            # 1. Extract hand pixels from segmentation mask (seg_output)
+            # 2. Use KDE to separate pixels into hour/minute hand clusters
+            # 3. Fit lines to each cluster to get hand directions
+            # 4. Calculate angles from center to line endpoints, relative to top keypoint
+            # 5. Determine confidence based on segmentation quality and consistency
             
-            # Placeholder output
-            # In a real implementation, this would compute actual angles
+            # PLACEHOLDER: Return zeros (this won't produce accurate results)
+            # Replace this with actual angle extraction logic
             hour_angle = tf.constant([[0.0]], dtype=tf.float32)
             minute_angle = tf.constant([[0.0]], dtype=tf.float32)
             second_angle = tf.constant([[0.0]], dtype=tf.float32)

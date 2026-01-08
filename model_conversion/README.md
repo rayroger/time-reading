@@ -2,6 +2,17 @@
 
 This directory contains Python scripts for converting TensorFlow models from the [akucia/analog-watch-recognition](https://github.com/akucia/analog-watch-recognition) repository to TensorFlow Lite format for use in the Android application.
 
+## ⚠️ Important Note on Unified Model
+
+The `export_savedmodel.py` script includes a `unified` model option that attempts to combine segmentation and keypoint models. **This is currently a placeholder implementation** and requires additional post-processing logic to be production-ready. 
+
+For production use, you have three options:
+1. **Implement the full post-processing pipeline** in the unified model (KDE, line fitting, angle extraction)
+2. **Use models separately** and implement post-processing in Android/Kotlin code
+3. **Train an end-to-end model** that directly outputs hand angles (recommended)
+
+The current implementation is provided as a template to demonstrate the conversion workflow.
+
 ## Overview
 
 The akucia/analog-watch-recognition project uses multiple models in a pipeline:

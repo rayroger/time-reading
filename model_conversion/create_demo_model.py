@@ -184,17 +184,16 @@ def validate_tflite_model(tflite_path):
     
     # Note: We're allowing wider ranges since the demo model is untrained
     # Real model should have better constraints
-    if not (-360 <= hour_angle <= 720):
-        print(f"⚠ Hour angle out of expected range: {hour_angle}")
-        valid = False
+    def check_angle_range(angle, name):
+        """Helper to check if angle is in acceptable range."""
+        if not (-360 <= angle <= 720):
+            print(f"⚠ {name} angle out of expected range: {angle}")
+            return False
+        return True
     
-    if not (-360 <= minute_angle <= 720):
-        print(f"⚠ Minute angle out of expected range: {minute_angle}")
-        valid = False
-    
-    if not (-360 <= second_angle <= 720):
-        print(f"⚠ Second angle out of expected range: {second_angle}")
-        valid = False
+    valid = check_angle_range(hour_angle, "Hour") and valid
+    valid = check_angle_range(minute_angle, "Minute") and valid
+    valid = check_angle_range(second_angle, "Second") and valid
     
     # Confidence can be any value for untrained model
     print(f"Confidence value: {confidence}")
