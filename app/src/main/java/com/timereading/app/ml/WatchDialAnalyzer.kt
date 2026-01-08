@@ -118,7 +118,7 @@ class WatchDialAnalyzer(
                     analyzeWithModel(bitmap)
                 } else {
                     // Use mock detection for demonstration when model is not available
-                    analyzeMock(bitmap)
+                    analyzeMock()
                 }
                 onTimeDetected(watchTime)
             } else {
@@ -177,7 +177,7 @@ class WatchDialAnalyzer(
      * Mock analysis for demonstration when no ML model is available.
      * This simulates watch detection by returning a placeholder time.
      */
-    private fun analyzeMock(bitmap: Bitmap): WatchTime? {
+    private fun analyzeMock(): WatchTime? {
         // In a real implementation, this would not exist
         // For demo purposes, we return null to indicate no watch detected
         // The UI will show appropriate message
