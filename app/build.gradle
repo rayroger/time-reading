@@ -57,16 +57,10 @@ dependencies {
     implementation "androidx.camera:camera-extensions:${camerax_version}"
     
     // TensorFlow Lite for ML inference
-    // Using latest stable versions to avoid namespace warnings
+    // Using compatible versions to resolve dependency issues
     implementation 'org.tensorflow:tensorflow-lite:2.16.1'
     implementation 'org.tensorflow:tensorflow-lite-gpu:2.16.1'
-    implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
-    
-    // Exclude transitive dependencies that cause namespace collisions
-    configurations.all {
-        exclude group: 'org.tensorflow', module: 'tensorflow-lite-api'
-        exclude group: 'org.tensorflow', module: 'tensorflow-lite-support-api'
-    }
+    implementation 'org.tensorflow:tensorflow-lite-support:0.16.0'
     
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit:1.9.0'
