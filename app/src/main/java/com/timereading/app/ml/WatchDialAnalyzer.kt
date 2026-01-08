@@ -12,6 +12,8 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.gpu.CompatibilityList
+import org.tensorflow.lite.gpu.GpuDelegate
 import org.tensorflow.lite.support.common.ops.NormalizeOp
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
@@ -41,6 +43,7 @@ class WatchDialAnalyzer(
 ) : ImageAnalysis.Analyzer {
 
     private var interpreter: Interpreter? = null
+    private var gpuDelegate: GpuDelegate? = null
     private var isInitialized = false
     private var lastAnalysisTime = 0L
     
@@ -61,23 +64,63 @@ class WatchDialAnalyzer(
 
     /**
      * Initializes the TensorFlow Lite interpreter with the watch detection model.
+     * Attempts to use GPU acceleration if available, with fallback to NNAPI and CPU.
      */
     private fun initializeInterpreter() {
         try {
             val model = loadModelFile()
             if (model != null) {
+                // Try GPU acceleration first
+                var useGpu = false
+                var useNnapi = false
+                
                 val options = Interpreter.Options().apply {
                     setNumThreads(4)
+                    
+                    // Try GPU delegate if compatible
+                    if (CompatibilityList().isDelegateSupportedOnThisDevice) {
+                        try {
+                            gpuDelegate = GpuDelegate()
+                            addDelegate(gpuDelegate!!)
+                            useGpu = true
+                            Log.d(TAG, "GPU delegate enabled")
+                        } catch (e: Exception) {
+                            Log.w(TAG, "GPU delegate not available: ${e.message}")
+                            gpuDelegate?.close()
+                            gpuDelegate = null
+                        }
+                    }
+                    
+                    // Try NNAPI if GPU not available
+                    if (!useGpu) {
+                        try {
+                            setUseNNAPI(true)
+                            useNnapi = true
+                            Log.d(TAG, "NNAPI delegate enabled")
+                        } catch (e: Exception) {
+                            Log.w(TAG, "NNAPI not available: ${e.message}")
+                            setUseNNAPI(false)
+                        }
+                    }
                 }
+                
                 interpreter = Interpreter(model, options)
                 isInitialized = true
-                Log.d(TAG, "TFLite interpreter initialized successfully")
+                
+                val accelType = when {
+                    useGpu -> "GPU"
+                    useNnapi -> "NNAPI"
+                    else -> "CPU"
+                }
+                Log.d(TAG, "TFLite interpreter initialized successfully (using $accelType)")
             } else {
                 Log.w(TAG, "Model file not found, analyzer will use mock detection")
                 isInitialized = false
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize TFLite interpreter", e)
+            gpuDelegate?.close()
+            gpuDelegate = null
             isInitialized = false
         }
     }
@@ -276,6 +319,8 @@ class WatchDialAnalyzer(
     fun close() {
         interpreter?.close()
         interpreter = null
+        gpuDelegate?.close()
+        gpuDelegate = null
         isInitialized = false
     }
 }
