@@ -76,7 +76,7 @@ check_prerequisites() {
     # Check for Java
     if ! command -v java &> /dev/null; then
         print_error "Java is not installed or not in PATH"
-        print_info "Please install Java JDK 11 or later"
+        print_info "Please install Java JDK 17 or later"
         exit 1
     else
         JAVA_VERSION=$(java -version 2>&1 | head -n 1 | cut -d'"' -f2)
@@ -244,7 +244,7 @@ ${YELLOW}Examples:${NC}
   ./build.sh install            # Install debug APK on device
 
 ${YELLOW}Requirements:${NC}
-  - Java JDK 11 or later
+  - Java JDK 17 or later
   - Android SDK (ANDROID_HOME or ANDROID_SDK_ROOT set)
   - For installation: Connected Android device or emulator
 

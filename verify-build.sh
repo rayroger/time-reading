@@ -555,7 +555,7 @@ print_summary() {
     
     PASS_RATE=0
     if [ "$TESTS_TOTAL" -gt 0 ]; then
-        PASS_RATE=$(echo "scale=1; $TESTS_PASSED * 100 / $TESTS_TOTAL" | bc 2>/dev/null || echo "0")
+        PASS_RATE=$(( TESTS_PASSED * 100 / TESTS_TOTAL ))
     fi
     
     echo -e "${CYAN}Pass Rate:${NC}   ${PASS_RATE}%"
