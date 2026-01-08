@@ -62,6 +62,12 @@ dependencies {
     implementation 'org.tensorflow:tensorflow-lite-gpu:2.16.1'
     implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
     
+    // Exclude transitive dependencies that cause namespace collisions
+    configurations.all {
+        exclude group: 'org.tensorflow', module: 'tensorflow-lite-api'
+        exclude group: 'org.tensorflow', module: 'tensorflow-lite-support-api'
+    }
+    
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit:1.9.0'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
