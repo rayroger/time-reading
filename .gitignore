@@ -79,3 +79,15 @@ lint-results.xml
 
 # Android Profiling
 *.hprof
+
+# Model conversion artifacts
+model_conversion/saved_models/
+model_conversion/*.tflite
+model_conversion/venv/
+model_conversion/__pycache__/
+
+# Python
+*.pyc
+__pycache__/
+venv/
+.python-version
