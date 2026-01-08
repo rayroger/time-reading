@@ -292,7 +292,9 @@ verify_debug_build() {
         test_passed "Debug APK size: ${APK_SIZE_MB} MB"
         
         # Check if APK is valid (basic check)
-        if file "$DEBUG_APK" | grep -q "Zip archive"; then
+        if file "$DEBUG_APK" | grep -qE "Zip archive|Java archive|Android"; then
+            test_passed "Debug APK is a valid archive"
+        elif unzip -t "$DEBUG_APK" >/dev/null 2>&1; then
             test_passed "Debug APK is a valid archive"
         else
             test_failed "Debug APK may be corrupted"
