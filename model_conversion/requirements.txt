@@ -1,0 +1,11 @@
+# Python requirements for model conversion scripts
+
+# TensorFlow for model export and conversion
+tensorflow>=2.10.0,<2.16.0
+
+# NumPy for numerical operations
+numpy>=1.19.0,<2.0.0
+
+# Optional: For working with analog-watch-recognition
+# Uncomment if you need to work with the original models
+# watch_recognition
