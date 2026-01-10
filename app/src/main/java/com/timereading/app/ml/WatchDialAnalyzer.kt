@@ -14,6 +14,7 @@ import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.gpu.CompatibilityList
 import org.tensorflow.lite.gpu.GpuDelegate
+import org.tensorflow.lite.nnapi.NnApiDelegate
 import org.tensorflow.lite.support.common.ops.NormalizeOp
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
@@ -44,6 +45,7 @@ class WatchDialAnalyzer(
 
     private var interpreter: Interpreter? = null
     private var gpuDelegate: GpuDelegate? = null
+    private var nnapiDelegate: NnApiDelegate? = null
     private var isInitialized = false
     private var lastAnalysisTime = 0L
     
@@ -80,7 +82,12 @@ class WatchDialAnalyzer(
                     // Try GPU delegate if compatible
                     if (CompatibilityList().isDelegateSupportedOnThisDevice) {
                         try {
-                            gpuDelegate = GpuDelegate()
+                            // Use GpuDelegate constructor without options to avoid NoClassDefFoundError
+                            val gpuDelegateOptions = GpuDelegate.Options().apply {
+                                setPrecisionLossAllowed(true)
+                                setInferencePreference(GpuDelegate.Options.INFERENCE_PREFERENCE_FAST_SINGLE_ANSWER)
+                            }
+                            gpuDelegate = GpuDelegate(gpuDelegateOptions)
                             addDelegate(gpuDelegate!!)
                             useGpu = true
                             Log.d(TAG, "GPU delegate enabled")
@@ -94,12 +101,14 @@ class WatchDialAnalyzer(
                     // Try NNAPI if GPU not available
                     if (!useGpu) {
                         try {
-                            setUseNNAPI(true)
+                            nnapiDelegate = NnApiDelegate()
+                            addDelegate(nnapiDelegate!!)
                             useNnapi = true
                             Log.d(TAG, "NNAPI delegate enabled")
                         } catch (e: Exception) {
                             Log.w(TAG, "NNAPI not available: ${e.message}")
-                            setUseNNAPI(false)
+                            nnapiDelegate?.close()
+                            nnapiDelegate = null
                         }
                     }
                 }
@@ -121,6 +130,8 @@ class WatchDialAnalyzer(
             Log.e(TAG, "Failed to initialize TFLite interpreter", e)
             gpuDelegate?.close()
             gpuDelegate = null
+            nnapiDelegate?.close()
+            nnapiDelegate = null
             isInitialized = false
         }
     }
@@ -321,6 +332,8 @@ class WatchDialAnalyzer(
         interpreter = null
         gpuDelegate?.close()
         gpuDelegate = null
+        nnapiDelegate?.close()
+        nnapiDelegate = null
         isInitialized = false
     }
 }
