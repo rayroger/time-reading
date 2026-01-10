@@ -3,6 +3,7 @@ package com.timereading.app
 import android.Manifest
 import android.content.ContentValues
 import android.content.pm.PackageManager
+import android.media.MediaActionSound
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
@@ -49,6 +50,9 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var mlExecutor: ExecutorService
+    
+    // Media action sound for camera shutter and video recording
+    private val mediaActionSound = MediaActionSound()
 
     private val activityResultLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
@@ -84,6 +88,11 @@ class MainActivity : AppCompatActivity() {
 
         cameraExecutor = Executors.newSingleThreadExecutor()
         mlExecutor = Executors.newSingleThreadExecutor()
+        
+        // Preload sounds for better responsiveness
+        mediaActionSound.load(MediaActionSound.SHUTTER_CLICK)
+        mediaActionSound.load(MediaActionSound.START_VIDEO_RECORDING)
+        mediaActionSound.load(MediaActionSound.STOP_VIDEO_RECORDING)
     }
     
     /**
@@ -155,6 +164,9 @@ class MainActivity : AppCompatActivity() {
                 contentValues)
             .build()
 
+        // Play shutter sound when taking photo
+        mediaActionSound.play(MediaActionSound.SHUTTER_CLICK)
+        
         // Set up image capture listener, which is triggered after photo has been taken
         imageCapture.takePicture(
             outputOptions,
@@ -223,12 +235,16 @@ class MainActivity : AppCompatActivity() {
             .start(ContextCompat.getMainExecutor(this)) { recordEvent ->
                 when(recordEvent) {
                     is VideoRecordEvent.Start -> {
+                        // Play start recording sound
+                        mediaActionSound.play(MediaActionSound.START_VIDEO_RECORDING)
                         viewBinding.videoCaptureButton.apply {
                             text = getString(R.string.stop_capture)
                             isEnabled = true
                         }
                     }
                     is VideoRecordEvent.Finalize -> {
+                        // Play stop recording sound
+                        mediaActionSound.play(MediaActionSound.STOP_VIDEO_RECORDING)
                         if (!recordEvent.hasError()) {
                             val msg = "Video capture succeeded: " +
                                     "${recordEvent.outputResults.outputUri}"
@@ -340,6 +356,7 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         watchDialAnalyzer?.close()
         watchDialAnalyzer = null
+        mediaActionSound.release()
         cameraExecutor.shutdown()
         mlExecutor.shutdown()
     }
