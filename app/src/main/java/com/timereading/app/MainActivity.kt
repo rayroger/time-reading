@@ -3,6 +3,7 @@ package com.timereading.app
 import android.Manifest
 import android.content.ContentValues
 import android.content.pm.PackageManager
+import android.media.MediaActionSound
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
@@ -49,6 +50,9 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var mlExecutor: ExecutorService
+    
+    // Media action sound for camera shutter and video recording
+    private val mediaActionSound = MediaActionSound()
 
     private val activityResultLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
@@ -84,6 +88,11 @@ class MainActivity : AppCompatActivity() {
 
         cameraExecutor = Executors.newSingleThreadExecutor()
         mlExecutor = Executors.newSingleThreadExecutor()
+        
+        // Preload sounds for better responsiveness
+        mediaActionSound.load(MediaActionSound.SHUTTER_CLICK)
+        mediaActionSound.load(MediaActionSound.START_VIDEO_RECORDING)
+        mediaActionSound.load(MediaActionSound.STOP_VIDEO_RECORDING)
     }
     
     /**
@@ -96,12 +105,16 @@ class MainActivity : AppCompatActivity() {
             viewBinding.analyzeButton.text = getString(R.string.analysis_enabled)
             viewBinding.timeDisplay.text = getString(R.string.analyzing)
             viewBinding.confidenceDisplay.visibility = View.GONE
+            // Disable video capture when analysis is active (hardware limitation)
+            viewBinding.videoCaptureButton.isEnabled = false
             // Restart camera with analysis enabled
             startCamera()
         } else {
             viewBinding.analyzeButton.text = getString(R.string.analysis_disabled)
             viewBinding.timeDisplay.text = getString(R.string.no_watch_detected)
             viewBinding.confidenceDisplay.visibility = View.GONE
+            // Re-enable video capture when analysis is disabled
+            viewBinding.videoCaptureButton.isEnabled = true
             // Restart camera without analysis
             watchDialAnalyzer?.close()
             watchDialAnalyzer = null
@@ -151,6 +164,9 @@ class MainActivity : AppCompatActivity() {
                 contentValues)
             .build()
 
+        // Play shutter sound when taking photo
+        mediaActionSound.play(MediaActionSound.SHUTTER_CLICK)
+        
         // Set up image capture listener, which is triggered after photo has been taken
         imageCapture.takePicture(
             outputOptions,
@@ -170,6 +186,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun captureVideo() {
+        // Check if video capture is available (not available during analysis mode)
+        if (!viewBinding.videoCaptureButton.isEnabled) {
+            Toast.makeText(this, 
+                "Video recording not available during watch analysis", 
+                Toast.LENGTH_SHORT).show()
+            return
+        }
+        
         val videoCapture = this.videoCapture ?: return
 
         viewBinding.videoCaptureButton.isEnabled = false
@@ -211,12 +235,16 @@ class MainActivity : AppCompatActivity() {
             .start(ContextCompat.getMainExecutor(this)) { recordEvent ->
                 when(recordEvent) {
                     is VideoRecordEvent.Start -> {
+                        // Play start recording sound
+                        mediaActionSound.play(MediaActionSound.START_VIDEO_RECORDING)
                         viewBinding.videoCaptureButton.apply {
                             text = getString(R.string.stop_capture)
                             isEnabled = true
                         }
                     }
                     is VideoRecordEvent.Finalize -> {
+                        // Play stop recording sound
+                        mediaActionSound.play(MediaActionSound.STOP_VIDEO_RECORDING)
                         if (!recordEvent.hasError()) {
                             val msg = "Video capture succeeded: " +
                                     "${recordEvent.outputResults.outputUri}"
@@ -296,20 +324,24 @@ class MainActivity : AppCompatActivity() {
                 cameraProvider.unbindAll()
 
                 // Bind use cases to camera
-                // Note: CameraX may not support binding all 4 use cases simultaneously
-                // on all devices, so we prioritize based on analysis state
+                // Note: Some devices can't bind all 4 use cases (Preview, ImageCapture, VideoCapture, ImageAnalysis) simultaneously
+                // Strategy: When analysis is enabled, we bind Preview + ImageCapture + ImageAnalysis (no video)
+                //           When analysis is disabled, we bind Preview + ImageCapture + VideoCapture (no analysis)
                 if (isAnalysisEnabled && imageAnalysis != null) {
-                    // When analyzing, bind preview, image capture, and analysis
+                    // When analyzing, bind preview, image capture, and analysis (no video recording)
                     cameraProvider.bindToLifecycle(
                         this, cameraSelector, preview, imageCapture, imageAnalysis)
+                    Log.d(TAG, "Camera bound with: Preview + ImageCapture + ImageAnalysis")
                 } else {
-                    // When not analyzing, bind preview, image capture, and video
+                    // When not analyzing, bind preview, image capture, and video (no analysis)
                     cameraProvider.bindToLifecycle(
                         this, cameraSelector, preview, imageCapture, videoCapture)
+                    Log.d(TAG, "Camera bound with: Preview + ImageCapture + VideoCapture")
                 }
 
             } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
+                Toast.makeText(this, "Camera binding failed: ${exc.message}", Toast.LENGTH_SHORT).show()
             }
 
         }, ContextCompat.getMainExecutor(this))
@@ -324,6 +356,7 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         watchDialAnalyzer?.close()
         watchDialAnalyzer = null
+        mediaActionSound.release()
         cameraExecutor.shutdown()
         mlExecutor.shutdown()
     }
