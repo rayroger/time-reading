@@ -82,12 +82,8 @@ class WatchDialAnalyzer(
                     // Try GPU delegate if compatible
                     if (CompatibilityList().isDelegateSupportedOnThisDevice) {
                         try {
-                            // Use GpuDelegate constructor without options to avoid NoClassDefFoundError
-                            val gpuDelegateOptions = GpuDelegate.Options().apply {
-                                setPrecisionLossAllowed(true)
-                                setInferencePreference(GpuDelegate.Options.INFERENCE_PREFERENCE_FAST_SINGLE_ANSWER)
-                            }
-                            gpuDelegate = GpuDelegate(gpuDelegateOptions)
+                            // Use default GpuDelegate for TF Lite 2.13.0
+                            gpuDelegate = GpuDelegate()
                             addDelegate(gpuDelegate!!)
                             useGpu = true
                             Log.d(TAG, "GPU delegate enabled")
