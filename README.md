@@ -202,9 +202,9 @@ implementation "androidx.camera:camera-core:1.3.0"
 implementation "androidx.camera:camera-camera2:1.3.0"
 implementation "androidx.camera:camera-lifecycle:1.3.0"
 
-// TensorFlow Lite for ML inference (latest stable version)
-implementation 'org.tensorflow:tensorflow-lite:2.17.0'
-implementation 'org.tensorflow:tensorflow-lite-gpu:2.17.0'
+// TensorFlow Lite for ML inference (stable version without LiteRT conflicts)
+implementation 'org.tensorflow:tensorflow-lite:2.14.0'
+implementation 'org.tensorflow:tensorflow-lite-gpu:2.14.0'
 implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
 ```
 

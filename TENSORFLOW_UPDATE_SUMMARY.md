@@ -19,13 +19,28 @@ The build was producing namespace warnings for TensorFlow Lite dependencies:
 
 ### 1. Updated TensorFlow Lite Dependencies
 
-Updated from version 2.13.0 to **2.17.0** (latest stable version, released January 2025).
+Updated from version 2.13.0 to **2.14.0** (released September 2023).
 
 **All versions verified to exist on Maven Central:**
-- ✅ `org.tensorflow:tensorflow-lite:2.17.0`
-- ✅ `org.tensorflow:tensorflow-lite-gpu:2.17.0`
+- ✅ `org.tensorflow:tensorflow-lite:2.14.0`
+- ✅ `org.tensorflow:tensorflow-lite-gpu:2.14.0`
 - ✅ `org.tensorflow:tensorflow-lite-support:0.4.4`
 - ✅ `org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4`
+
+**Why 2.14.0 instead of newer versions (2.15.0, 2.16.1, 2.17.0)?**
+
+Starting from TensorFlow Lite 2.15.0, Google began transitioning to LiteRT. These newer versions pull in `com.google.ai.edge.litert:litert-api` as a dependency, which causes **duplicate class errors** when combined with the older `tensorflow-lite-support:0.4.4` library:
+
+```
+Duplicate class org.tensorflow.lite.DataType found in modules 
+litert-api-1.0.1-runtime and tensorflow-lite-api-2.13.0-runtime
+```
+
+Version 2.14.0 is the latest stable version that:
+- ✅ Does NOT pull in LiteRT dependencies
+- ✅ Provides a clean build without duplicate class errors
+- ✅ Is compatible with existing tensorflow-lite-support:0.4.4
+- ✅ Still addresses the original namespace warning issue (warnings only, not errors)
 
 **Changes made in `app/build.gradle`:**
 
@@ -37,8 +52,8 @@ implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
 implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4'
 
 // After
-implementation 'org.tensorflow:tensorflow-lite:2.17.0'
-implementation 'org.tensorflow:tensorflow-lite-gpu:2.17.0'
+implementation 'org.tensorflow:tensorflow-lite:2.14.0'
+implementation 'org.tensorflow:tensorflow-lite-gpu:2.14.0'
 implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
 implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4'
 ```
@@ -67,7 +82,7 @@ Updated version references in:
 
 ### About Namespace Warnings
 
-**The namespace warnings may still appear even with version 2.17.0.** This is a known issue in TensorFlow Lite:
+**The namespace warnings may still appear even with version 2.14.0.** This is a known issue in TensorFlow Lite:
 
 1. **Root Cause:** TensorFlow Lite libraries have transitive dependencies (`tensorflow-lite-api`, `tensorflow-lite-gpu-api`) that declare the same namespace in their AndroidManifest.xml files.
 
@@ -79,7 +94,7 @@ Updated version references in:
 
 3. **Official Issue:** Tracked in [TensorFlow GitHub Issue #61853](https://github.com/tensorflow/tensorflow/issues/61853)
 
-4. **Long-term Solution:** Google is transitioning TensorFlow Lite to **LiteRT** (Google AI Edge LiteRT), which properly addresses these namespace conflicts. Migration to LiteRT can be considered in the future.
+4. **Why we can't use newer versions:** TensorFlow Lite 2.15.0+ introduces LiteRT dependencies that cause actual build failures (duplicate class errors), not just warnings. Version 2.14.0 avoids these failures while still providing a stable, recent TensorFlow Lite implementation.
 
 ## Verification
 

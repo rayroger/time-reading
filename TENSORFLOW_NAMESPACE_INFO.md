@@ -37,16 +37,22 @@ During the build, you may see warnings like:
 
 ## Current Solution
 
-We are using the **latest stable TensorFlow Lite version (2.17.0)** released January 2025:
+We are using **TensorFlow Lite version 2.14.0** (released September 2023):
 
 ```gradle
-implementation 'org.tensorflow:tensorflow-lite:2.17.0'
-implementation 'org.tensorflow:tensorflow-lite-gpu:2.17.0'
+implementation 'org.tensorflow:tensorflow-lite:2.14.0'
+implementation 'org.tensorflow:tensorflow-lite-gpu:2.14.0'
 implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
 implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4'
 ```
 
 All versions have been verified to exist on Maven Central.
+
+**Why 2.14.0 and not newer versions?**
+- TensorFlow Lite 2.15.0+ introduces a dependency on LiteRT (com.google.ai.edge.litert:litert-api)
+- This creates **duplicate class errors** when combined with older tensorflow-lite-support libraries
+- Version 2.14.0 is the latest stable version that does NOT pull in LiteRT dependencies
+- It provides a stable build without conflicts while still being relatively recent
 
 ## Alternative Solutions
 

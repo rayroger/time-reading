@@ -92,7 +92,7 @@ Updated the call site accordingly.
 ```
 
 **Fix:**
-Updated TensorFlow Lite dependencies to the latest stable version (2.17.0, released January 2025):
+Updated TensorFlow Lite dependencies to version 2.14.0 (latest stable without LiteRT conflicts):
 
 **Before:**
 ```gradle
@@ -103,12 +103,12 @@ implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
 
 **After:**
 ```gradle
-implementation 'org.tensorflow:tensorflow-lite:2.17.0'
-implementation 'org.tensorflow:tensorflow-lite-gpu:2.17.0'
+implementation 'org.tensorflow:tensorflow-lite:2.14.0'
+implementation 'org.tensorflow:tensorflow-lite-gpu:2.14.0'
 implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
 ```
 
-**Note:** Namespace warnings may still appear as this is a known issue in TensorFlow Lite (see TENSORFLOW_NAMESPACE_INFO.md). The warnings are harmless and do not affect functionality.
+**Note:** Namespace warnings may still appear as this is a known TensorFlow Lite issue (see TENSORFLOW_NAMESPACE_INFO.md). The warnings are harmless and do not affect functionality. Version 2.14.0 was chosen because newer versions (2.15.0+) introduce LiteRT dependencies that cause duplicate class build errors.
 
 ## Testing Infrastructure Added
 

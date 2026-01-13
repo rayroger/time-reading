@@ -481,7 +481,7 @@ Warning: Memory pressure, app may be killed
 
 **Problem**: Gradle build fails
 ```
-Error: Could not resolve org.tensorflow:tensorflow-lite:2.17.0
+Error: Could not resolve org.tensorflow:tensorflow-lite:2.14.0
 ```
 
 **Solution**:
