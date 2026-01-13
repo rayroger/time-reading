@@ -572,7 +572,7 @@ ML Inference Pipeline
 dependencies {
     // Existing dependencies...
     
-    // TensorFlow Lite
+    // TensorFlow Lite (stable version without LiteRT conflicts)
     implementation 'org.tensorflow:tensorflow-lite:2.14.0'
     implementation 'org.tensorflow:tensorflow-lite-gpu:2.14.0'
     implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'

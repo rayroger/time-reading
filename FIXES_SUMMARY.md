@@ -81,10 +81,10 @@ Updated the call site accordingly.
 
 **Issue:**
 ```
-[org.tensorflow:tensorflow-lite:2.14.0] Warning:
+[org.tensorflow:tensorflow-lite:2.13.0] Warning:
     Namespace 'org.tensorflow.lite' is used in multiple modules and/or libraries: 
-    org.tensorflow:tensorflow-lite:2.14.0, org.tensorflow:tensorflow-lite-gpu:2.14.0, 
-    org.tensorflow:tensorflow-lite-api:2.14.0
+    org.tensorflow:tensorflow-lite:2.13.0, org.tensorflow:tensorflow-lite-gpu:2.13.0, 
+    org.tensorflow:tensorflow-lite-api:2.13.0
 
 [org.tensorflow:tensorflow-lite-support:0.4.4] Warning:
     Namespace 'org.tensorflow.lite.support' is used in multiple modules and/or libraries: 
@@ -92,21 +92,23 @@ Updated the call site accordingly.
 ```
 
 **Fix:**
-Updated TensorFlow Lite dependencies to the latest stable version (2.16.1) which has better namespace handling:
+Updated TensorFlow Lite dependencies to version 2.14.0 (latest stable without LiteRT conflicts):
 
 **Before:**
+```gradle
+implementation 'org.tensorflow:tensorflow-lite:2.13.0'
+implementation 'org.tensorflow:tensorflow-lite-gpu:2.13.0'
+implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
+```
+
+**After:**
 ```gradle
 implementation 'org.tensorflow:tensorflow-lite:2.14.0'
 implementation 'org.tensorflow:tensorflow-lite-gpu:2.14.0'
 implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
 ```
 
-**After:**
-```gradle
-implementation 'org.tensorflow:tensorflow-lite:2.16.1'
-implementation 'org.tensorflow:tensorflow-lite-gpu:2.16.1'
-implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
-```
+**Note:** Namespace warnings may still appear as this is a known TensorFlow Lite issue (see TENSORFLOW_NAMESPACE_INFO.md). The warnings are harmless and do not affect functionality. Version 2.14.0 was chosen because newer versions (2.15.0+) introduce LiteRT dependencies that cause duplicate class build errors.
 
 ## Testing Infrastructure Added
 
