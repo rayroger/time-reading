@@ -19,7 +19,7 @@ The build was producing namespace warnings for TensorFlow Lite dependencies:
 
 ### 1. Updated TensorFlow Lite Dependencies
 
-Updated from version 2.13.0 to **2.17.0** (latest stable version, released January 9, 2025).
+Updated from version 2.13.0 to **2.17.0** (latest stable version, released January 2025).
 
 **All versions verified to exist on Maven Central:**
 - ✅ `org.tensorflow:tensorflow-lite:2.17.0`
