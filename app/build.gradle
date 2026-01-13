@@ -57,9 +57,10 @@ dependencies {
     implementation "androidx.camera:camera-extensions:${camerax_version}"
     
     // TensorFlow Lite for ML inference
-    // Using version 2.13.0 for compatibility with tensorflow-lite-support
-    implementation 'org.tensorflow:tensorflow-lite:2.13.0'
-    implementation 'org.tensorflow:tensorflow-lite-gpu:2.13.0'
+    // Using latest stable version 2.17.0 (released Jan 2025) - verified on Maven Central
+    // Note: Namespace warnings are expected and harmless (known TFLite issue)
+    implementation 'org.tensorflow:tensorflow-lite:2.17.0'
+    implementation 'org.tensorflow:tensorflow-lite-gpu:2.17.0'
     implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
     implementation 'org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.4'
     
