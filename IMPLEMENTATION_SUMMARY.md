@@ -90,9 +90,9 @@ time-reading/
 - **CameraX suite**: 1.3.0 (core, camera2, lifecycle, video, view, extensions)
 
 ### Build Configuration
-- **Kotlin**: 1.9.0
-- **Gradle**: 8.0
-- **Android Gradle Plugin**: 8.1.0
+- **Kotlin**: 1.9.22
+- **Gradle**: 8.2.1
+- **Android Gradle Plugin**: 8.2.2
 - **Compile SDK**: 34
 - **Min SDK**: 24 (Android 7.0)
 - **Target SDK**: 34 (Android 14)
