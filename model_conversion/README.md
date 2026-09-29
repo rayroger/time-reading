@@ -218,6 +218,10 @@ The Android app expects a TensorFlow Lite model with the following signature:
   - `secondAngle`: Angle of second hand in degrees (0-360), or -1 if not detected
   - `confidence`: Detection confidence score (0.0-1.0)
 
+All conversion modes must preserve the Android analyzer's float32 input and output tensors. The `int8` option quantizes supported model operations internally but retains a float32 boundary so it can be invoked by the current Android code. For useful calibration, replace the random samples in `representative_dataset_gen()` in `convert_to_tflite.py` with representative, preprocessed watch images before using int8 quantization.
+
+The checked-in `app/src/main/assets/watch_detector.tflite` is a 1 KB placeholder for packaging checks, not a valid inference model. Neither that placeholder nor the generated demo model is suitable for reading real watch times.
+
 ## Troubleshooting
 
 ### Model loading fails in Android

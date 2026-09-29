@@ -87,15 +87,14 @@ def convert_to_tflite(model_path, output_path, quantization="none", optimize_for
             
         elif quantization == "int8":
             # Full integer quantization
-            # Quantizes both weights and activations to int8
-            # Requires representative dataset
-            # Reduces model size by ~4x, fastest on CPU
+            # Quantizes model operations to int8 while keeping the external
+            # interface float32, as required by WatchDialAnalyzer.
             converter.optimizations = [tf.lite.Optimize.DEFAULT]
             converter.representative_dataset = representative_dataset_gen
             converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-            converter.inference_input_type = tf.uint8
-            converter.inference_output_type = tf.uint8
-            print("Using full integer quantization (int8)")
+            converter.inference_input_type = tf.float32
+            converter.inference_output_type = tf.float32
+            print("Using int8 operation quantization with float32 input/output")
             
         else:  # quantization == "none"
             # No quantization, keep as float32

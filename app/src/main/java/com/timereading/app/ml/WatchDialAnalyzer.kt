@@ -275,31 +275,52 @@ class WatchDialAnalyzer(
      * Converts YUV_420_888 format to RGB Bitmap.
      */
     private fun yuvToRgbBitmap(imageProxy: ImageProxy): Bitmap? {
-        val yBuffer = imageProxy.planes[0].buffer
-        val uBuffer = imageProxy.planes[1].buffer
-        val vBuffer = imageProxy.planes[2].buffer
+        val planes = imageProxy.planes
+        if (planes.size < 3) return null
 
-        val ySize = yBuffer.remaining()
-        val uSize = uBuffer.remaining()
-        val vSize = vBuffer.remaining()
+        val width = imageProxy.width
+        val height = imageProxy.height
+        val yPlane = planes[0]
+        val uPlane = planes[1]
+        val vPlane = planes[2]
+        val yBuffer = yPlane.buffer.duplicate()
+        val uBuffer = uPlane.buffer.duplicate()
+        val vBuffer = vPlane.buffer.duplicate()
+        val ySize = width * height
+        val nv21 = ByteArray(ySize + ySize / 2)
 
-        val nv21 = ByteArray(ySize + uSize + vSize)
-        yBuffer.get(nv21, 0, ySize)
-        vBuffer.get(nv21, ySize, vSize)
-        uBuffer.get(nv21, ySize + vSize, uSize)
+        for (row in 0 until height) {
+            for (column in 0 until width) {
+                nv21[row * width + column] = yBuffer.get(
+                    yBuffer.position() + row * yPlane.rowStride + column * yPlane.pixelStride
+                )
+            }
+        }
+
+        val chromaWidth = width / 2
+        val chromaHeight = height / 2
+        for (row in 0 until chromaHeight) {
+            for (column in 0 until chromaWidth) {
+                val outputIndex = ySize + row * width + column * 2
+                val uIndex = uBuffer.position() + row * uPlane.rowStride + column * uPlane.pixelStride
+                val vIndex = vBuffer.position() + row * vPlane.rowStride + column * vPlane.pixelStride
+                nv21[outputIndex] = vBuffer.get(vIndex)
+                nv21[outputIndex + 1] = uBuffer.get(uIndex)
+            }
+        }
 
         val yuvImage = YuvImage(
             nv21,
             ImageFormat.NV21,
-            imageProxy.width,
-            imageProxy.height,
+            width,
+            height,
             null
         )
 
         val out = ByteArrayOutputStream()
-        yuvImage.compressToJpeg(Rect(0, 0, imageProxy.width, imageProxy.height), 80, out)
+        yuvImage.compressToJpeg(Rect(0, 0, width, height), 80, out)
         val imageBytes = out.toByteArray()
-        val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+        val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size) ?: return null
 
         // Rotate bitmap based on image rotation
         return rotateBitmap(bitmap, imageProxy.imageInfo.rotationDegrees)
