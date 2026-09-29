@@ -87,25 +87,23 @@ app/build/reports/androidTests/connected/index.html
 
 ## ML Model Verification Tests
 
-The instrumented tests verify:
+The current instrumented tests do not verify successful interpreter initialization
+or actual model inference. They verify analyzer construction/cleanup and whether
+the asset can be opened.
 
-1. **Model Loading**: Tests that the analyzer can check for the model file
-2. **Mock Mode Fallback**: Ensures the app gracefully handles missing model
-3. **No Crashes**: Verifies app doesn't crash when model is absent
+The checked-in `watch_detector.tflite` is a small packaging placeholder, not a
+valid inference model. The analyzer falls back to mock mode when it cannot
+initialize the interpreter; mock mode always reports no detection.
 
-### With Model File
+### With a Valid Model File
 
-If `app/src/main/assets/watch_detector.tflite` exists:
-- Analyzer should initialize TensorFlow Lite interpreter
-- Model should be loaded and ready for inference
-- Tests should verify model initialization succeeds
+Once a trained model matching the documented input/output contract is added,
+add an instrumented test that verifies interpreter initialization and inference
+using a test image. Merely checking that the asset can be opened does not prove
+that it is a valid TensorFlow Lite model.
 
-### Without Model File
-
-If model file is missing (current state):
-- Analyzer should fall back to mock mode
-- No exceptions should be thrown
-- Tests should verify graceful degradation
+The current tests do not verify inference accuracy; that requires a validated
+model and representative watch-image test data.
 
 ## Running All Tests
 
