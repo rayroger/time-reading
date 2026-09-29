@@ -32,21 +32,33 @@ except ImportError:
     sys.exit(1)
 
 
-def representative_dataset_gen():
+def representative_dataset_gen(image_dir):
     """
-    Generator function that yields representative input data for quantization.
-    
-    This is used for full integer quantization to determine the range of values
-    in the model activations.
+    Yield preprocessed watch images for full integer quantization calibration.
     """
-    # Generate sample images (224x224 RGB, normalized to [0, 1])
-    for _ in range(100):
-        # Random data representing normalized RGB images
-        data = np.random.rand(1, 224, 224, 3).astype(np.float32)
-        yield [data]
+    image_extensions = {".jpg", ".jpeg", ".png", ".bmp"}
+    image_paths = sorted(
+        path for path in Path(image_dir).iterdir()
+        if path.is_file() and path.suffix.lower() in image_extensions
+    )
+    if not image_paths:
+        raise ValueError(f"No supported calibration images found in {image_dir}")
+
+    for image_path in image_paths:
+        image_data = tf.io.read_file(str(image_path))
+        image = tf.io.decode_image(image_data, channels=3, expand_animations=False)
+        image = tf.image.convert_image_dtype(image, tf.float32)
+        image = tf.image.resize(image, [224, 224])
+        yield [image[tf.newaxis, ...].numpy()]
 
 
-def convert_to_tflite(model_path, output_path, quantization="none", optimize_for_size=True):
+def convert_to_tflite(
+    model_path,
+    output_path,
+    quantization="none",
+    optimize_for_size=True,
+    representative_data_dir=None,
+):
     """
     Convert SavedModel to TensorFlow Lite format.
     
@@ -63,6 +75,13 @@ def convert_to_tflite(model_path, output_path, quantization="none", optimize_for
     print(f"Quantization: {quantization}")
     
     try:
+        if quantization == "int8":
+            if not representative_data_dir or not os.path.isdir(representative_data_dir):
+                raise ValueError(
+                    "Int8 quantization requires --representative-data-dir "
+                    "containing representative watch images"
+                )
+
         # Create the converter
         converter = tf.lite.TFLiteConverter.from_saved_model(model_path)
         
@@ -90,7 +109,9 @@ def convert_to_tflite(model_path, output_path, quantization="none", optimize_for
             # Quantizes model operations to int8 while keeping the external
             # interface float32, as required by WatchDialAnalyzer.
             converter.optimizations = [tf.lite.Optimize.DEFAULT]
-            converter.representative_dataset = representative_dataset_gen
+            converter.representative_dataset = lambda: representative_dataset_gen(
+                representative_data_dir
+            )
             converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
             converter.inference_input_type = tf.float32
             converter.inference_output_type = tf.float32
@@ -209,6 +230,11 @@ def main():
         help="Disable size optimization"
     )
     parser.add_argument(
+        "--representative-data-dir",
+        type=str,
+        help="Directory of representative watch images required for int8 quantization"
+    )
+    parser.add_argument(
         "--validate",
         action="store_true",
         default=True,
@@ -227,7 +253,8 @@ def main():
         args.model_path,
         args.output,
         args.quantize,
-        not args.no_optimize
+        not args.no_optimize,
+        args.representative_data_dir
     )
     
     if tflite_path and args.validate:

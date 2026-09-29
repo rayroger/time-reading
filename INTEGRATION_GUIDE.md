@@ -227,7 +227,8 @@ python convert_to_tflite.py \
 python convert_to_tflite.py \
     --model-path saved_models/unified_model \
     --output watch_detector.tflite \
-    --quantize int8
+    --quantize int8 \
+    --representative-data-dir ./calibration_images
 ```
 - Weights & Activations: int8
 - Size reduction: ~75%
