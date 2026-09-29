@@ -124,9 +124,9 @@ MediaStore
 
 ## Build Configuration
 
-- **Gradle Version**: 8.0
-- **Android Gradle Plugin**: 8.1.0
-- **Kotlin Version**: 1.9.0
+- **Gradle Version**: 8.2.1
+- **Android Gradle Plugin**: 8.2.2
+- **Kotlin Version**: 1.9.22
 - **Compile SDK**: 34
 - **View Binding**: Enabled
 

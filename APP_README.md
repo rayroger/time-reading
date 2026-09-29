@@ -14,8 +14,8 @@ An Android application that captures photos and videos using the device camera, 
 
 - Android SDK 24 (Android 7.0) or higher
 - Android Studio Arctic Fox or later
-- Kotlin 1.9.0
-- Gradle 8.0
+- Kotlin 1.9.22
+- Gradle 8.2.1
 
 ## Permissions
 

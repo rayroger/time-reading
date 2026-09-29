@@ -41,8 +41,8 @@ See [model_conversion/README.md](model_conversion/README.md) for details on mode
 
 - **Android SDK**: API 24 (Android 7.0) or higher
 - **Target SDK**: API 34 (Android 14)
-- **Kotlin**: 1.9.0
-- **Gradle**: 8.0
+- **Kotlin**: 1.9.22
+- **Gradle**: 8.2.1
 - **Device**: Camera-enabled Android device
 
 ## Building the App
