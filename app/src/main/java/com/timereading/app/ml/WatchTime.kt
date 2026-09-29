@@ -32,7 +32,7 @@ data class WatchTime(
      * Returns true if this is a valid time reading.
      */
     fun isValid(): Boolean {
-        return hours in 0..11 && minutes in 0..59 && (seconds < 0 || seconds in 0..59)
+        return hours in 0..11 && minutes in 0..59 && seconds in -1..59
     }
 
     companion object {
