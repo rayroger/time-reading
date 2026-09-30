@@ -85,6 +85,8 @@ model_conversion/saved_models/
 model_conversion/*.tflite
 model_conversion/venv/
 model_conversion/__pycache__/
+watch_model/dataset/
+watch_model/build/
 
 # Python
 *.pyc

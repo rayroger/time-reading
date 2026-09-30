@@ -218,7 +218,7 @@ def main():
     parser.add_argument(
         "--real-image-root",
         type=Path,
-        help="Root for relative image paths in --real-test-manifest",
+        help="Root for relative paths in real train/validation/test manifests",
     )
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch-size", type=int, default=32)
