@@ -1,10 +1,15 @@
 # Python requirements for model conversion scripts
 
-# TensorFlow for model export and conversion
-tensorflow>=2.10.0,<2.16.0
+# TensorFlow for model export, training, and conversion. TensorFlow 2.16+
+# supports Python 3.12 and keeps generated models compatible with the Android
+# TensorFlow Lite runtime used by this project.
+tensorflow>=2.16.1,<2.20.0
 
 # NumPy for numerical operations
-numpy>=1.19.0,<2.0.0
+numpy>=1.26.0,<2.0.0
+
+# Pillow for procedural watch-face rendering and image augmentation
+pillow>=12.3.0
 
 # Optional: For working with analog-watch-recognition
 # Uncomment if you need to work with the original models
