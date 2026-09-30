@@ -7,11 +7,15 @@ This directory should contain the TensorFlow Lite model file `watch_detector.tfl
 ### Model Specifications
 
 - **Input**: 224x224 RGB image (normalized to [0, 1])
-- **Output**: 4 float values
+- **Output**: 5 float values
   - `hourAngle`: Angle of hour hand (0-360 degrees from 12 o'clock)
   - `minuteAngle`: Angle of minute hand (0-360 degrees from 12 o'clock)
   - `secondAngle`: Angle of second hand (0-360 degrees from 12 o'clock)
-  - `confidence`: Detection confidence (0-1)
+  - `watchConfidence`: Probability that a readable watch is present (0-1)
+  - `secondHandConfidence`: Probability that a second hand is present (0-1)
+
+The output tensor has shape `[1, 5]` and type `float32`. When the second-hand
+confidence is at or below 0.5, Android treats seconds as unavailable.
 
 ### Training Requirements
 
@@ -81,12 +85,13 @@ The `aaptOptions { noCompress "tflite" }` setting in `app/build.gradle` ensures 
 
 ### Current Status
 
-**Mock Mode**: Until a trained model is available, the `WatchDialAnalyzer` will operate 
-in mock mode, indicating that no watch was detected. The infrastructure is in place for 
-seamless integration once a trained model is available.
+**No usable model is currently included.** The checked-in `watch_detector.tflite` is a 1 KB
+placeholder for packaging checks, not a valid TensorFlow Lite inference model. The analyzer
+fails to initialize it and consequently falls back to mock mode, which reports no watch
+detected. The demo-model script is also only for exercising integration; it does not read
+actual watches. A trained and validated model matching the input/output contract above is
+required before the app can read time.
 
-To add the model:
-1. Place `watch_detector.tflite` in the `app/src/main/assets/` directory
-2. Rebuild the app
-3. The analyzer will automatically detect and use the model
-
+To integrate a real model, replace the placeholder at `app/src/main/assets/watch_detector.tflite`
+with a trained, validated model matching the input/output contract above, then rebuild and
+test inference on a device.

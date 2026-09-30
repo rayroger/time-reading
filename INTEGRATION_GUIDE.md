@@ -46,7 +46,7 @@ Hand Segmentation ────────→ Hand Pixels
     ↓
 KDE & Line Fitting ───────→ Hand Angles
     ↓
-Output: [hourAngle, minuteAngle, secondAngle, confidence]
+Output: [hourAngle, minuteAngle, secondAngle, watchConfidence, secondHandConfidence]
 ```
 
 ## Prerequisites
@@ -227,7 +227,8 @@ python convert_to_tflite.py \
 python convert_to_tflite.py \
     --model-path saved_models/unified_model \
     --output watch_detector.tflite \
-    --quantize int8
+    --quantize int8 \
+    --representative-data-dir ./calibration_images
 ```
 - Weights & Activations: int8
 - Size reduction: ~75%
@@ -247,7 +248,7 @@ Example validation output:
 === Model Information ===
 Input shape: [1, 224, 224, 3]
 Input type: <class 'numpy.float32'>
-Output shape: [1, 4]
+Output shape: [1, 5]
 Output type: <class 'numpy.float32'>
 
 === Testing Inference ===

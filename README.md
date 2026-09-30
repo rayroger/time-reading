@@ -121,11 +121,11 @@ The app expects a TensorFlow Lite model with:
 
 **Output Tensor:**
 - Name: `output`
-- Shape: `[1, 4]`
+- Shape: `[1, 5]`
 - Type: `float32`
-- Format: `[hourAngle, minuteAngle, secondAngle, confidence]`
+- Format: `[hourAngle, minuteAngle, secondAngle, watchConfidence, secondHandConfidence]`
   - Angles in degrees (0-360), 0° = 12 o'clock position
-  - Confidence score (0.0-1.0)
+  - Confidence scores (0.0-1.0); second-hand confidence determines whether seconds are reported
 
 ### Performance Optimization
 
@@ -227,12 +227,11 @@ implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
 
 ## Model Training
 
-To train your own models for better accuracy:
-
-1. Clone [akucia/analog-watch-recognition](https://github.com/akucia/analog-watch-recognition)
-2. Follow their training instructions
-3. Use the conversion scripts in `model_conversion/` to export to TFLite
-4. Replace `app/src/main/assets/watch_detector.tflite`
+Use the procedural data generator and training pipeline in [`watch_model/`](watch_model/TRAINING.md).
+It produces a TensorFlow Lite model matching the Android analyzer's tensor
+contract. Synthetic test metrics are not evidence of accuracy on real watches;
+evaluate a separate held-out, manually labeled real-photo set before treating
+the app as a real-world watch reader.
 
 ## Performance Benchmarks
 
@@ -299,4 +298,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Contact
 
 For questions or issues, please open an issue on GitHub.
-

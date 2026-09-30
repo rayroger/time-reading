@@ -76,7 +76,7 @@ if (!useGpu) {
 
 **Model Specifications:**
 - Input: `[1, 224, 224, 3]` float32 (RGB image, normalized [0,1])
-- Output: `[1, 4]` float32 (hourAngle, minuteAngle, secondAngle, confidence)
+- Output contract: `[1, 5]` float32 (hourAngle, minuteAngle, secondAngle, watchConfidence, secondHandConfidence)
 - Format: TensorFlow Lite FlatBuffers
 
 ### ✅ 4. Documentation
