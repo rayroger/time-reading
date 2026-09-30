@@ -59,10 +59,10 @@ def create_simple_demo_model():
     x = tf.keras.layers.Dense(128, activation='relu')(x)
     x = tf.keras.layers.Dropout(0.3)(x)
     
-    # Output layer: [hourAngle, minuteAngle, secondAngle, confidence]
+    # Output layer: [hourAngle, minuteAngle, secondAngle, watchConfidence, secondHandConfidence]
     # Angles are in range [0, 360] degrees
     # Confidence is in range [0, 1]
-    outputs = tf.keras.layers.Dense(4, activation='linear', name='output')(x)
+    outputs = tf.keras.layers.Dense(5, activation='linear', name='output')(x)
     
     model = tf.keras.Model(inputs=inputs, outputs=outputs, name='watch_detector')
     
@@ -101,8 +101,12 @@ def initialize_with_mock_weights(model):
     second_angles = np.random.uniform(0, 360, num_samples)
     # Confidence: 0.7-0.95 for demo
     confidence = np.random.uniform(0.7, 0.95, num_samples)
+    second_hand_confidence = np.ones(num_samples, dtype=np.float32)
     
-    y = np.stack([hour_angles, minute_angles, second_angles, confidence], axis=1).astype(np.float32)
+    y = np.stack(
+        [hour_angles, minute_angles, second_angles, confidence, second_hand_confidence],
+        axis=1,
+    ).astype(np.float32)
     
     # Quick training to initialize weights
     print("Quick initialization training...")
@@ -177,7 +181,7 @@ def validate_tflite_model(tflite_path):
     print(f"  Confidence: {output[0][3]:.3f}")
     
     # Validate output ranges
-    hour_angle, minute_angle, second_angle, confidence = output[0]
+    hour_angle, minute_angle, second_angle, confidence, second_hand_confidence = output[0]
     
     print("\n=== Validation ===")
     valid = True
@@ -197,6 +201,7 @@ def validate_tflite_model(tflite_path):
     
     # Confidence can be any value for untrained model
     print(f"Confidence value: {confidence}")
+    print(f"Second-hand confidence value: {second_hand_confidence}")
     
     if valid:
         print("✓ Model validation passed (ranges are acceptable for demo)")

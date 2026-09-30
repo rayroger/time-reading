@@ -7,11 +7,15 @@ This directory should contain the TensorFlow Lite model file `watch_detector.tfl
 ### Model Specifications
 
 - **Input**: 224x224 RGB image (normalized to [0, 1])
-- **Output**: 4 float values
+- **Output**: 5 float values
   - `hourAngle`: Angle of hour hand (0-360 degrees from 12 o'clock)
   - `minuteAngle`: Angle of minute hand (0-360 degrees from 12 o'clock)
   - `secondAngle`: Angle of second hand (0-360 degrees from 12 o'clock)
-  - `confidence`: Detection confidence (0-1)
+  - `watchConfidence`: Probability that a readable watch is present (0-1)
+  - `secondHandConfidence`: Probability that a second hand is present (0-1)
+
+The output tensor has shape `[1, 5]` and type `float32`. When the second-hand
+confidence is at or below 0.5, Android treats seconds as unavailable.
 
 ### Training Requirements
 

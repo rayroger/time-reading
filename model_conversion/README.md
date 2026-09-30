@@ -211,13 +211,14 @@ The Android app expects a TensorFlow Lite model with the following signature:
 - Format: RGB image normalized to [0, 1]
 
 **Output:**
-- Shape: `[1, 4]`
+- Shape: `[1, 5]`
 - Type: `float32`
-- Format: `[hourAngle, minuteAngle, secondAngle, confidence]`
+- Format: `[hourAngle, minuteAngle, secondAngle, watchConfidence, secondHandConfidence]`
   - `hourAngle`: Angle of hour hand in degrees (0-360), where 0° = 12 o'clock
   - `minuteAngle`: Angle of minute hand in degrees (0-360)
-  - `secondAngle`: Angle of second hand in degrees (0-360), or -1 if not detected
-  - `confidence`: Detection confidence score (0.0-1.0)
+  - `secondAngle`: Predicted second-hand angle in degrees (0-360); ignored when `secondHandConfidence` is at or below 0.5
+  - `watchConfidence`: Detection confidence score (0.0-1.0)
+  - `secondHandConfidence`: Probability that a second hand is present (0.0-1.0)
 
 All conversion modes must preserve the Android analyzer's float32 input and output tensors. The `int8` option quantizes supported model operations internally but retains a float32 boundary so it can be invoked by the current Android code. Int8 quantization requires a directory of representative watch images; the converter resizes and normalizes these images for calibration. Use images representative of the model's expected input, since calibration quality affects inference accuracy.
 

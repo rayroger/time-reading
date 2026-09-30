@@ -8,9 +8,6 @@ tensorflow>=2.16.1,<2.20.0
 # NumPy for numerical operations
 numpy>=1.26.0,<2.0.0
 
-# Pillow for procedural watch-face rendering and image augmentation
-pillow>=12.3.0
-
 # Optional: For working with analog-watch-recognition
 # Uncomment if you need to work with the original models
 # watch_recognition

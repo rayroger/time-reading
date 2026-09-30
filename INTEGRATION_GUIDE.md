@@ -46,7 +46,7 @@ Hand Segmentation ────────→ Hand Pixels
     ↓
 KDE & Line Fitting ───────→ Hand Angles
     ↓
-Output: [hourAngle, minuteAngle, secondAngle, confidence]
+Output: [hourAngle, minuteAngle, secondAngle, watchConfidence, secondHandConfidence]
 ```
 
 ## Prerequisites
@@ -248,7 +248,7 @@ Example validation output:
 === Model Information ===
 Input shape: [1, 224, 224, 3]
 Input type: <class 'numpy.float32'>
-Output shape: [1, 4]
+Output shape: [1, 5]
 Output type: <class 'numpy.float32'>
 
 === Testing Inference ===

@@ -24,20 +24,38 @@ def read_split(manifest_path, image_root, split):
     examples = []
     with open(manifest_path, newline="", encoding="utf-8") as manifest_file:
         for row in csv.DictReader(manifest_file):
-            if split is not None and row.get("split") != split:
+            row_split = row.get("split")
+            if split == "validation":
+                split_matches = row_split in ("val", "validation")
+            else:
+                split_matches = row_split == split
+            if split is not None and not split_matches:
                 continue
-            image_path = Path(row["image"])
+            image_path = Path(row.get("image_path") or row["image"])
             if not image_path.is_absolute():
                 image_path = image_root / image_path
             if not image_path.is_file():
                 raise FileNotFoundError(f"Image listed in manifest does not exist: {image_path}")
-            angles = [float(row[column]) for column in ANGLE_COLUMNS]
-            confidence = float(row["confidence"])
+            angles = [
+                float(row[column]) if row.get(column, "").strip() else -1.0
+                for column in ANGLE_COLUMNS
+            ]
+            confidence = float(row.get("confidence_target") or row.get("confidence", 0.0))
             if not 0.0 <= confidence <= 1.0:
                 raise ValueError(f"confidence must be in [0, 1]: {row}")
             if confidence > 0.0 and any(not 0.0 <= angle < 360.0 for angle in angles[:2]):
                 raise ValueError(f"usable examples need hour/minute angles in [0, 360): {row}")
-            examples.append((str(image_path), angles + [confidence]))
+            second_present = row.get("second_present")
+            second_present = (
+                float(second_present)
+                if second_present not in (None, "")
+                else float(angles[2] >= 0.0)
+            )
+            if not 0.0 <= second_present <= 1.0:
+                raise ValueError(f"second_present must be in [0, 1]: {row}")
+            if confidence > 0.0 and second_present > 0.0 and angles[2] < 0.0:
+                raise ValueError(f"readable second hand needs an angle target: {row}")
+            examples.append((str(image_path), angles + [confidence, second_present]))
     if not examples:
         raise ValueError(f"No {split!r} examples found in {manifest_path}")
     return examples
@@ -75,10 +93,10 @@ def build_model():
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
     x = tf.keras.layers.Dropout(0.25)(x)
     x = tf.keras.layers.Dense(128, activation="relu")(x)
-    raw = tf.keras.layers.Dense(4, activation="sigmoid", name="normalized_outputs")(x)
+    raw = tf.keras.layers.Dense(5, activation="sigmoid", name="normalized_outputs")(x)
     angles = tf.keras.layers.Lambda(lambda values: values[:, :3] * 360.0)(raw)
-    confidence = tf.keras.layers.Lambda(lambda values: values[:, 3:4])(raw)
-    outputs = tf.keras.layers.Concatenate(name="output")([angles, confidence])
+    confidences = tf.keras.layers.Lambda(lambda values: values[:, 3:5])(raw)
+    outputs = tf.keras.layers.Concatenate(name="output")([angles, confidences])
     return tf.keras.Model(inputs=inputs, outputs=outputs, name="watch_time_reader")
 
 
@@ -86,14 +104,17 @@ def watch_loss(y_true, y_pred):
     confidence = y_true[:, 3]
     angle_delta = (y_pred[:, :3] - y_true[:, :3]) * (math.pi / 180.0)
     circular_error = 1.0 - tf.cos(angle_delta)
-    second_valid = tf.cast(y_true[:, 2] >= 0.0, tf.float32)
+    second_valid = y_true[:, 4]
     angle_weights = tf.stack((confidence, confidence, confidence * second_valid), axis=1)
     angle_loss = tf.reduce_sum(circular_error * angle_weights, axis=1)
     angle_loss /= tf.maximum(tf.reduce_sum(angle_weights, axis=1), 1.0)
     confidence_loss = tf.keras.losses.binary_crossentropy(
         confidence[:, tf.newaxis], y_pred[:, 3:4]
     )
-    confidence_loss = tf.squeeze(confidence_loss, axis=-1)
+    second_confidence_loss = tf.keras.losses.binary_crossentropy(
+        second_valid[:, tf.newaxis], y_pred[:, 4:5]
+    )
+    confidence_loss = tf.squeeze(confidence_loss + second_confidence_loss, axis=-1)
     return angle_loss + confidence_loss
 
 
@@ -106,9 +127,9 @@ def decode_tflite_predictions(model_path, examples):
         raise ValueError(f"Unexpected model input shape: {input_details['shape']}")
     if input_details["dtype"] != np.float32:
         raise ValueError(f"Expected float32 input, got {input_details['dtype']}")
-    if output_details["shape"].tolist() != [1, 4] or output_details["dtype"] != np.float32:
+    if output_details["shape"].tolist() != [1, 5] or output_details["dtype"] != np.float32:
         raise ValueError(
-            f"Expected float32 [1, 4] output, got "
+            f"Expected float32 [1, 5] output, got "
             f"{output_details['shape']} {output_details['dtype']}"
         )
 
@@ -130,7 +151,14 @@ def report_metrics(split_name, examples, predictions):
     actual_watch = truth[:, 3] >= 0.5
     predicted_watch = predictions[:, 3] >= 0.5
     detection_accuracy = np.mean(actual_watch == predicted_watch)
-    print(f"{split_name}: {len(examples)} images; detection accuracy={detection_accuracy:.4f}")
+    true_positive = np.count_nonzero(actual_watch & predicted_watch)
+    precision = true_positive / max(np.count_nonzero(predicted_watch), 1)
+    recall = true_positive / max(np.count_nonzero(actual_watch), 1)
+    print(
+        f"{split_name}: {len(examples)} images; "
+        f"detection accuracy={detection_accuracy:.4f}, "
+        f"precision={precision:.4f}, recall={recall:.4f}"
+    )
 
     usable = actual_watch & predicted_watch
     if not np.any(usable):
@@ -142,6 +170,12 @@ def report_metrics(split_name, examples, predictions):
             delta = np.abs(predictions[valid_angle, index] - truth[valid_angle, index]) % 360.0
             error = np.minimum(delta, 360.0 - delta)
             print(f"  {column} circular MAE={np.mean(error):.2f}°")
+    second_labels = truth[:, 4]
+    second_predictions = predictions[:, 4] >= 0.5
+    print(
+        "  second-hand presence accuracy="
+        f"{np.mean(second_predictions == (second_labels >= 0.5)):.4f}"
+    )
     time_valid = usable & (truth[:, 0] >= 0.0) & (truth[:, 1] >= 0.0)
     if np.any(time_valid):
         pred_minutes = (
@@ -167,6 +201,16 @@ def main():
     parser.add_argument("--image-root", type=Path, help="Root for relative image paths")
     parser.add_argument("--output", type=Path, default=Path("build/watch_detector.tflite"))
     parser.add_argument(
+        "--real-train-manifest",
+        type=Path,
+        help="Optional labeled real-photo training CSV, kept separate from synthetic images",
+    )
+    parser.add_argument(
+        "--real-validation-manifest",
+        type=Path,
+        help="Optional labeled real-photo validation CSV for model selection",
+    )
+    parser.add_argument(
         "--real-test-manifest",
         type=Path,
         help="Optional separate CSV of labeled real photos (must not overlap training data)",
@@ -187,8 +231,24 @@ def main():
     manifest = Path(args.manifest).resolve()
     image_root = (args.image_root or manifest.parent).resolve()
     training = read_split(manifest, image_root, "train")
-    validation = read_split(manifest, image_root, "validation")
+    synthetic_validation = read_split(manifest, image_root, "validation")
+    validation = list(synthetic_validation)
     test = read_split(manifest, image_root, "test")
+    real_image_root = (
+        args.real_image_root.resolve()
+        if args.real_image_root
+        else None
+    )
+    if args.real_train_manifest:
+        real_manifest = args.real_train_manifest.resolve()
+        training += read_split(
+            real_manifest, real_image_root or real_manifest.parent, split=None
+        )
+    if args.real_validation_manifest:
+        real_manifest = args.real_validation_manifest.resolve()
+        validation += read_split(
+            real_manifest, real_image_root or real_manifest.parent, split=None
+        )
 
     model = build_model()
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=watch_loss)
@@ -208,11 +268,24 @@ def main():
     with open(args.output, "wb") as output_file:
         output_file.write(converter.convert())
 
-    for split_name, examples in (("validation", validation), ("test", test)):
+    for split_name, examples in (
+        ("synthetic validation", synthetic_validation),
+        ("synthetic test", test),
+    ):
         report_metrics(split_name, examples, decode_tflite_predictions(args.output, examples))
+    if args.real_validation_manifest:
+        real_manifest = args.real_validation_manifest.resolve()
+        real_examples = read_split(
+            real_manifest, real_image_root or real_manifest.parent, split=None
+        )
+        report_metrics(
+            "real-photo validation",
+            real_examples,
+            decode_tflite_predictions(args.output, real_examples),
+        )
     if args.real_test_manifest:
         real_manifest = args.real_test_manifest.resolve()
-        real_root = (args.real_image_root or real_manifest.parent).resolve()
+        real_root = real_image_root or real_manifest.parent
         real_examples = read_split(real_manifest, real_root, split=None)
         report_metrics(
             "held-out real-photo test",
@@ -220,7 +293,10 @@ def main():
             decode_tflite_predictions(args.output, real_examples),
         )
     print(f"TensorFlow Lite model written to {args.output}")
-    print("These metrics use generated images only; they do not establish real-photo accuracy.")
+    print(
+        "Synthetic metrics do not establish real-photo accuracy; "
+        "use a separate held-out real-photo set for that assessment."
+    )
 
 
 if __name__ == "__main__":

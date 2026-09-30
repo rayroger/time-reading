@@ -52,7 +52,8 @@ class WatchDialAnalyzer(
     // Model input/output configuration
     private val inputImageWidth = 224
     private val inputImageHeight = 224
-    private val outputSize = 4 // [hourAngle, minuteAngle, secondAngle, confidence]
+    private val outputSize = 5
+    // [hourAngle, minuteAngle, secondAngle, watchConfidence, secondHandConfidence]
 
     companion object {
         private const val TAG = "WatchDialAnalyzer"
@@ -203,11 +204,11 @@ class WatchDialAnalyzer(
             
             // Extract results
             val output = outputBuffer.floatArray
-            if (output.size >= 4) {
+            if (output.size >= outputSize) {
                 val angles = HandAngles(
                     hourAngle = output[0],
                     minuteAngle = output[1],
-                    secondAngle = output[2]
+                    secondAngle = if (output[4] > 0.5f) output[2] else -1f
                 )
                 val confidence = output[3]
                 

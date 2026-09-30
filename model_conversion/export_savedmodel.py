@@ -170,8 +170,8 @@ def create_unified_model(segmentation_path, keypoint_path, output_dir):
             - Train an end-to-end model that directly outputs angles
             
             Returns:
-                Tensor of shape [1, 4] containing:
-                [hourAngle, minuteAngle, secondAngle, confidence]
+                Tensor of shape [1, 5] containing:
+                [hourAngle, minuteAngle, secondAngle, watchConfidence, secondHandConfidence]
             """
             # Get segmentation mask
             seg_output = segmentation_model.signatures['serving_default'](input_image)
@@ -192,9 +192,13 @@ def create_unified_model(segmentation_path, keypoint_path, output_dir):
             hour_angle = tf.constant([[0.0]], dtype=tf.float32)
             minute_angle = tf.constant([[0.0]], dtype=tf.float32)
             second_angle = tf.constant([[0.0]], dtype=tf.float32)
-            confidence = tf.constant([[0.0]], dtype=tf.float32)
+            watch_confidence = tf.constant([[0.0]], dtype=tf.float32)
+            second_hand_confidence = tf.constant([[0.0]], dtype=tf.float32)
             
-            output = tf.concat([hour_angle, minute_angle, second_angle, confidence], axis=1)
+            output = tf.concat(
+                [hour_angle, minute_angle, second_angle, watch_confidence, second_hand_confidence],
+                axis=1,
+            )
             return output
         
         # Create a module to save

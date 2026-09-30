@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import math
 import random
@@ -143,15 +144,21 @@ STYLES = {
 }
 SPLIT_STYLES = {
     "train": ("dress", "diver", "pilot", "minimal", "roman"),
-    "val": ("bauhaus", "skeleton"),
+    "validation": ("bauhaus", "skeleton"),
     "test": ("retro", "field"),
 }
 SPLIT_RENDER_PROFILES = {
     "train": ("studio", "rotated", "warm-light", "soft-focus"),
-    "val": ("perspective", "reflective", "cool-light"),
+    "validation": ("perspective", "reflective", "cool-light"),
     "test": ("wide-perspective", "low-light", "motion-blur"),
 }
 STATUSES = ("readable", "negative", "unreadable")
+CSV_COLUMNS = (
+    "split", "image", "image_path", "hour_angle", "minute_angle", "second_angle",
+    "confidence", "confidence_target", "second_present", "usable", "status",
+    "hour_label", "minute_label", "style_id", "render_id", "timestamp_utc",
+)
+SECOND_HAND_PRESENT_PROBABILITY = 0.8
 
 
 def point_on_dial(cx: float, cy: float, radius: float, degrees: float) -> tuple[float, float]:
@@ -179,7 +186,7 @@ def hand(canvas: Canvas, cx: float, cy: float, radius: float, angle: float,
 
 
 def render_watch(size: int, rng: random.Random, style: Style, status: str,
-                 timestamp: datetime | None) -> Canvas:
+                 timestamp: datetime | None, second_present: bool) -> Canvas:
     bg = tuple(rng.randint(55, 105) for _ in range(3))
     canvas = Canvas(size, size, bg)
     cx = cy = size / 2
@@ -190,7 +197,7 @@ def render_watch(size: int, rng: random.Random, style: Style, status: str,
     canvas.rect(int(cx - strap_w / 2), int(cy - r * 1.6), int(cx + strap_w / 2), int(cy + r * 1.6), strap)
     for y in range(int(cy - r * 1.48), int(cy + r * 1.48), max(5, int(13 * scale))):
         canvas.line(cx - strap_w * .3, y, cx + strap_w * .3, y, style.case, max(1, scale))
-    canvas.circle(cx, cy, r * 1.12, (18, 20, 21), True)
+    canvas.circle(cx + r * .045, cy + r * .065, r * 1.12, (18, 20, 21), True)
     canvas.circle(cx, cy, r * 1.08, style.case, True)
     canvas.circle(cx, cy, r, (210, 213, 205), True)
     canvas.circle(cx, cy, r * .93, style.dial, True)
@@ -224,15 +231,14 @@ def render_watch(size: int, rng: random.Random, style: Style, status: str,
 
     canvas.circle(cx + r * .65, cy - r * .34, r * .095, style.ink, True)
     canvas.circle(cx + r * .65, cy - r * .34, r * .071, style.dial, True)
-    canvas.text("SYN", cx - 9 * scale, cy + r * .35, style.accent, max(1, int(scale)))
-
     if timestamp is not None:
         hour_angle = ((timestamp.hour % 12) + timestamp.minute / 60 + timestamp.second / 3600) * 30
         minute_angle = (timestamp.minute + timestamp.second / 60) * 6
         second_angle = timestamp.second * 6
         hand(canvas, cx, cy, r * .49, hour_angle, style.ink, style.hand, 5.0 * scale, r * .085)
         hand(canvas, cx, cy, r * .72, minute_angle, style.ink, style.hand, 3.2 * scale, r * .11)
-        hand(canvas, cx, cy, r * .81, second_angle, style.accent, "line", 1.25 * scale, r * .2)
+        if second_present:
+            hand(canvas, cx, cy, r * .81, second_angle, style.accent, "line", 1.25 * scale, r * .2)
         canvas.circle(cx, cy, r * .055, style.accent, True)
         canvas.circle(cx, cy, r * .025, style.ink, True)
 
@@ -422,6 +428,7 @@ def generate(args: argparse.Namespace) -> None:
         raise SystemExit("--samples-per-split must be a positive multiple of 3 for balanced status classes")
     root.mkdir(parents=True, exist_ok=True)
     master = random.Random(args.seed)
+    csv_rows = []
     for split, styles in SPLIT_STYLES.items():
         split_dir = root / split
         split_dir.mkdir(parents=True, exist_ok=True)
@@ -433,32 +440,70 @@ def generate(args: argparse.Namespace) -> None:
             rng = random.Random(master.getrandbits(64))
             style_name = rng.choice(styles)
             profile = rng.choice(profile_names)
+            second_present = (
+                status != "negative" and rng.random() < SECOND_HAND_PRESENT_PROBABILITY
+            )
             timestamp = None
             if status != "negative":
                 timestamp = datetime(2025, 1, 1, rng.randrange(24), rng.randrange(60), rng.randrange(60),
                                      tzinfo=timezone.utc)
             canvas = (render_negative(args.size, rng) if status == "negative" else
-                      render_watch(args.size, rng, STYLES[style_name], status, timestamp))
+                      render_watch(args.size, rng, STYLES[style_name], status, timestamp, second_present))
             apply_effects(canvas, rng, profile, status)
             filename = f"{index:06d}.png"
+            image_path = f"{split}/{filename}"
             (split_dir / filename).write_bytes(png_bytes(canvas))
+            readable = status == "readable"
+            angle_labels = angles(timestamp) if readable else None
+            if angle_labels is not None and not second_present:
+                angle_labels["second"] = None
+            timestamp_label = timestamp.isoformat().replace("+00:00", "Z") if readable else None
+            style_id = "none" if status == "negative" else style_name
             records.append({
                 "image": filename,
+                "image_path": image_path,
                 "split": split,
                 "status": status,
-                "style_id": "none" if status == "negative" else style_name,
+                "style_id": style_id,
                 "render_profile": profile,
-                "timestamp_utc": timestamp.isoformat().replace("+00:00", "Z") if status == "readable" else None,
-                "angles_degrees": angles(timestamp) if status == "readable" else None,
-                "confidence_target": 1.0 if status == "readable" else 0.0,
+                "render_id": profile,
+                "timestamp_utc": timestamp_label,
+                "angles_degrees": angle_labels,
+                "hour_label": (timestamp.hour % 12 or 12) if readable else None,
+                "minute_label": timestamp.minute if readable else None,
+                "confidence_target": 1.0 if readable else 0.0,
+                "second_present": second_present,
                 "angle_convention": "degrees clockwise from 12 o'clock; values in [0, 360)",
                 "input": {"width": args.size, "height": args.size, "channels": "RGB", "dtype": "uint8",
                           "normalization": "float32(pixel)/255 -> [0,1]"},
+            })
+            csv_rows.append({
+                "split": split,
+                "image": image_path,
+                "image_path": image_path,
+                "hour_angle": angle_labels["hour"] if readable else -1.0,
+                "minute_angle": angle_labels["minute"] if readable else -1.0,
+                "second_angle": angle_labels["second"] if readable and second_present else -1.0,
+                "confidence": 1 if readable else 0,
+                "confidence_target": 1 if readable else 0,
+                "second_present": 1 if second_present else 0,
+                "usable": 1 if readable else 0,
+                "status": status,
+                "hour_label": (timestamp.hour % 12 or 12) if readable else "",
+                "minute_label": timestamp.minute if readable else "",
+                "style_id": style_id,
+                "render_id": profile,
+                "timestamp_utc": timestamp_label or "",
             })
         with (split_dir / "labels.jsonl").open("w", encoding="utf-8") as stream:
             for record in records:
                 stream.write(json.dumps(record, separators=(",", ":")) + "\n")
         print(f"{split}: {len(records)} images ({statuses_per_split} per status), styles={','.join(styles)}")
+
+    with (root / "dataset.csv").open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=CSV_COLUMNS, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(csv_rows)
 
     manifest = {
         "format_version": 1,
@@ -469,7 +514,11 @@ def generate(args: argparse.Namespace) -> None:
         "split_style_families": {key: list(value) for key, value in SPLIT_STYLES.items()},
         "split_render_profiles": {key: list(value) for key, value in SPLIT_RENDER_PROFILES.items()},
         "labels_file": "labels.jsonl per split",
+        "csv_file": "dataset.csv",
+        "csv_columns": list(CSV_COLUMNS),
         "angles": "hour/minute/second clockwise from 12 o'clock in degrees, modulo 360",
+        "second_hand_present_probability": SECOND_HAND_PRESENT_PROBABILITY,
+        "confidence_target": "1 for readable samples, 0 otherwise; status separately identifies watch presence",
     }
     (root / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"Dataset written to {root.resolve()}")
