@@ -1,9 +1,13 @@
 # Python requirements for model conversion scripts
 
 # TensorFlow for model export, training, and conversion. TensorFlow 2.16+
-# supports Python 3.12 and keeps generated models compatible with the Android
-# TensorFlow Lite runtime used by this project.
-tensorflow>=2.16.1,<2.20.0
+# keeps generated models compatible with the Android TensorFlow Lite runtime
+# used by this project. The upper bound is kept open enough to pick up
+# TensorFlow 2.20/2.21, which add stable Windows/Linux/macOS wheels for
+# Python 3.13; as of this writing, no stable TensorFlow release publishes
+# wheels for Python 3.14, so training on Windows requires Python 3.10-3.13
+# (see watch_model/train.py for the interpreter check and error message).
+tensorflow>=2.16.1,<2.22.0
 
 # NumPy for numerical operations
 numpy>=1.26.0,<2.0.0
