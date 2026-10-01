@@ -118,6 +118,12 @@ python create_demo_model.py --output watch_detector.tflite --no-quantize
 
 ## Requirements
 
+Requires a **Python 3.10-3.13** interpreter (64-bit on Windows): TensorFlow does
+not currently publish stable wheels for Python 3.14+, so `pip install` will
+fail to find a matching distribution on a newer interpreter. On Windows, run
+`py -0p` to see which versions are installed and `py -3.12 -m venv .venv` to
+create a virtual environment with a supported one.
+
 Install Python dependencies:
 
 ```bash
@@ -126,7 +132,7 @@ pip install -r requirements.txt
 
 Or manually:
 ```bash
-pip install tensorflow>=2.10.0 numpy
+pip install tensorflow>=2.16.1,<2.22.0 numpy
 ```
 
 For working with the full analog-watch-recognition repository:

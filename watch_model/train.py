@@ -4,7 +4,30 @@
 import argparse
 import csv
 import math
+import sys
 from pathlib import Path
+
+# Range of Python versions for which TensorFlow currently publishes stable
+# wheels (see model_conversion/requirements.txt). Check this before importing
+# TensorFlow so unsupported interpreters (e.g. Python 3.14+ on Windows) get an
+# actionable error instead of being told to install a dependency that has no
+# matching distribution for their interpreter.
+_MIN_SUPPORTED_PYTHON = (3, 10)
+_MAX_SUPPORTED_PYTHON = (3, 13)
+
+if not _MIN_SUPPORTED_PYTHON <= sys.version_info[:2] <= _MAX_SUPPORTED_PYTHON:
+    raise SystemExit(
+        "Unsupported Python version "
+        f"{sys.version_info.major}.{sys.version_info.minor} detected. "
+        "TensorFlow does not currently publish stable wheels outside Python "
+        f"{_MIN_SUPPORTED_PYTHON[0]}.{_MIN_SUPPORTED_PYTHON[1]}-"
+        f"{_MAX_SUPPORTED_PYTHON[0]}.{_MAX_SUPPORTED_PYTHON[1]}. Install a "
+        "supported interpreter (on Windows, run `py -0p` to see installed "
+        "versions and `py -3.12 -m venv .venv` to create a virtual "
+        "environment with one), activate it, then install the model "
+        "conversion requirements: pip install -r "
+        "model_conversion/requirements.txt"
+    )
 
 try:
     import numpy as np
